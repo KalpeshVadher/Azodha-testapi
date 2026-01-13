@@ -3,8 +3,6 @@ name: Node.js CI + Docker + ECS Deploy
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   build-test-deploy:
@@ -15,43 +13,35 @@ jobs:
         node-version: [18.x, 20.x]
 
     steps:
-    # 1️⃣ Code checkout
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2️⃣ Node.js setup
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
 
-    # 3️⃣ Install dependencies
     - name: Install dependencies
       run: |
         cd app
         npm install
 
-    # 4️⃣ Run tests (agar ho)
     - name: Run tests
       run: |
         cd app
         npm test --if-present
 
-    # 5️⃣ Docker Hub login
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    # 6️⃣ Docker image build & push
     - name: Build & Push Docker Image
       run: |
         docker build -t dockerhub_username/ml-api:latest .
         docker push dockerhub_username/ml-api:latest
 
-    # 7️⃣ AWS credentials
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -59,8 +49,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ap-south-1
 
-    # 8️⃣ Terraform deploy to ECS
-    - name: Terraform Apply (Deploy to ECS)
+    - name: Terraform Apply
       run: |
         cd terraform
         terraform init
